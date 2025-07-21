@@ -34,10 +34,15 @@ app = FastAPI()
     include_router example
     - used to modularize the application by separating routes into different files
     - allows for better organization and maintainability of the codebase
-'''
-from shopping.app1.urls import shop
-from shopping.app2.urls import user
+# '''
+# from shopping.app1.urls import shop
+# from shopping.app2.urls import user
 
-app.include_router(shop, prefix="/shop", tags=["Shop Endpoints"])
-app.include_router(user, prefix="/user", tags=["User Endpoints"])
+# app.include_router(shop, prefix="/shop", tags=["Shop Endpoints"])
+# app.include_router(user, prefix="/user", tags=["User Endpoints"])
+
+
+'''
+    Request and Response: Check RequestAndReponseApp Folder Content
+'''
  
