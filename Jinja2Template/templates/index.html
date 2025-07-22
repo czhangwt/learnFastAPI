@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Hello {{ user|upper }}!</h1>  
+    {% if age > 18 %}
+        <h2>You are an adult.</h2>
+    {% else %}
+        <h2>You are a minor.</h2>
+    {% endif %}
+    <h1>Age: {{ age }}</h1>
+    <h2>Books:</h2>
+    <ul>
+        {% for book in books %}
+            <li>{{ book }}</li>
+        {% endfor %}
+    </ul>
+    <h2> Education:</h2>
+    <ul>
+        {% for item, value in education.items() %}
+            <li>{{ item }}: {{ value }}</li>
+        {% endfor %}
+    </ul>
+    <h2> pi: {{ pi|round(2) }}</h2>
+</body>
+</html>
