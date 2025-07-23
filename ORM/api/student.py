@@ -10,9 +10,9 @@
 """
 
 from fastapi import APIRouter
-from models import Student
+from models import *
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Union
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
@@ -70,29 +70,109 @@ async def getAllStudents():
     # # 5. Query values of specific fields, return a list of Dictionaries
     # stu_ids = await Student.all().values('student_id', 'name')
     # print(stu_ids)  # [{'student_id': 2001, 'name': 'Stu 1'}, {'student_id': 2002, 'name': 'Stu 2'}]
+    
+    # # 6. one-to-many relationship query: student finds their class
+    # # get one student and their class
+    # stu = await Student.get(name="Alice")
+    # print(stu.name)
+    # print(await stu.clas.values("name"))
+    # # # get all students and their classes
+    # students = await Student.all().values("name", "clas__name")
+
+    # # 7. many-to-many relationship query: student finds their courses
+    # # get one student and their courses
+    # stu = await Student.get(name="Cathy")
+    # print(await stu.courses.all().values("name", "teacher__name")) # get all courses and their teachers for the student
+    
+    # # get all students and their courses
+    students = await Student.all().values("name", "clas__name", "courses__name", "courses__teacher__name")
     return students
 
 
+
+class StudentIn(BaseModel):
+    name: str
+    password: str
+    student_id: int
+    clas_id: int  # Foreign key to Clas model
+    courses_ids: List[int] = []  # List of course IDs for many-to-many relationship
+
+    @field_validator('name')
+    def name_must_alpha(cls, value):
+        assert value.isalpha(), 'Name must contain only alphabetic characters'
+        return value
+    
+    @field_validator('student_id')
+    def student_id_validate(cls, value):
+        assert value > 2000 and value < 10000, 'Student ID must be 2000-9999'
+        return value
+    
+
 @student_api.post("/")
-async def addStudent():
+async def addStudent(student_in: StudentIn):
+    # Insert a new student into the database
+    # Method 1: .save()
+    # student = Student(name = student_in.name,
+    #         password = student_in.password,
+    #         student_id = student_in.student_id,
+    #         clas_id = student_in.clas_id)
+    # await student.save()
+    # Method 2: .create()
+    student = await Student.create(
+        name=student_in.name,
+        password=student_in.password,
+        student_id=student_in.student_id,
+        clas_id=student_in.clas_id
+    )
+
+    # many-to-many relationship adding (insert)
+    choose_courses = await Course.filter(id__in=student_in.courses_ids) 
+    await student.courses.add(*choose_courses) # * means unpacking the list of courses
+
     return {
-        "message": "Add a student"
+        "message": "Add a student",
+        "student": student
+
     }
 
+
+# get one student
 @student_api.get("/{student_id}")
 async def getStudent(student_id: int):
+    # Retrieve a specific student by ID
+    student = await Student.get(student_id=student_id)
     return {
-        "message": f"Details of student {student_id}"
+        "message": f"Details of student {student_id}",
+        "student": student
     }
 
+# update a student
+# Note: In a real application, you would typically use a Pydantic model StudentIn for the request body
 @student_api.put("/{student_id}")
-async def updateStudent(student_id: int):
-    return {
-        "message": f"Update student {student_id}"
-    }
+async def updateStudent(student_id: int, student_in: StudentIn):
+    data = student_in.model_dump()
+    print(data)
+    courses = data.pop("courses_ids")
+    # update() can change one-to-one and one-to-many relationships
+    # but cannot change many-to-many relationships, which need to be handled separately
+    await Student.filter(student_id=student_id).update(**data)
 
+    edit_stu = await Student.get(student_id=student_id)
+    choose_courses = await Course.filter(id__in=courses)
+    await edit_stu.courses.clear()  # clear existing courses
+    await edit_stu.courses.add(*choose_courses)
+
+
+    return edit_stu
+
+
+from fastapi import HTTPException
+# delete a student
 @student_api.delete("/{student_id}")
 async def deleteStudent(student_id: int):
+    deleteCount = await Student.filter(student_id=student_id).delete()
+    if deleteCount == 0:
+        raise HTTPException(status_code=404, detail=f"Student ID {student_id} not found")
     return {
         "message": f"Delete student {student_id}"
     }
