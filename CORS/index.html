@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FastAPI CORS Example</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <p id="message">Click the message.</p>
+
+    <script>
+        $("p").click(function() {
+            $.ajax({
+                url: "http://127.0.0.1:8000/user",
+                success: function(res) {
+                    console.log(res)
+                    console.log(res.user)
+                    $("p").html("Response: " + res.message)
+                }
+            });
+        });
+    </script>
+</body>
+</html>
